@@ -3,22 +3,23 @@
 PSQL="psql --username=freecodecamp --dbname=number_guess -t --no-align -c"
 
 echo "Enter your username:"
-read USERNAME
+read -r USERNAME
 
 USER_INFO=$($PSQL "SELECT games_played, best_game FROM users WHERE username='$USERNAME'")
-USER_INFO=$(echo $USER_INFO | sed 's/^ *//;s/ *$//')
 
-if [[ -z $USER_INFO ]]
+if [[ -z "$USER_INFO" ]]
 then
   echo "Welcome, $USERNAME! It looks like this is your first time here."
   $PSQL "INSERT INTO users(username) VALUES('$USERNAME')" > /dev/null
   GAMES_PLAYED=0
-  BEST_GAME=""
+  BEST_GAME=0
 else
   IFS="|" read GAMES_PLAYED BEST_GAME <<< "$USER_INFO"
 
-  GAMES_PLAYED=$(echo $GAMES_PLAYED | xargs)
-  BEST_GAME=$(echo $BEST_GAME | xargs)
+  if [[ -z $BEST_GAME ]]
+  then
+    BEST_GAME=0
+  fi
 
   echo "Welcome back, $USERNAME! You have played $GAMES_PLAYED games, and your best game took $BEST_GAME guesses."
 fi
@@ -30,9 +31,8 @@ echo "Guess the secret number between 1 and 1000:"
 
 while true
 do
-  read GUESS
+  read -r GUESS
 
-  # MUST be integer check
   if [[ ! $GUESS =~ ^[0-9]+$ ]]
   then
     echo "That is not an integer, guess again:"
@@ -42,25 +42,24 @@ do
   ((GUESS_COUNT++))
 
   if [[ $GUESS -lt $SECRET_NUMBER ]]
-then
-  echo "It's higher than that, guess again:"
-elif [[ $GUESS -gt $SECRET_NUMBER ]]
-then
-  echo "It's lower than that, guess again:"
-else
-  echo "You guessed it in $GUESS_COUNT tries. The secret number was $SECRET_NUMBER. Nice job!"
-  break
-fi
-
-  NEW_GAMES=$((GAMES_PLAYED + 1))
-
-  if [[ -z $BEST_GAME || $BEST_GAME -eq 0 || $GUESS_COUNT -lt $BEST_GAME ]]
   then
-    $PSQL "UPDATE users SET games_played=$NEW_GAMES, best_game=$GUESS_COUNT WHERE username='$USERNAME'"
+    echo "It's higher than that, guess again:"
+  elif [[ $GUESS -gt $SECRET_NUMBER ]]
+  then
+    echo "It's lower than that, guess again:"
   else
-    $PSQL "UPDATE users SET games_played=$NEW_GAMES WHERE username='$USERNAME'"
-  fi
+    ((GUESS_COUNT++))
 
-  break
-fi
+echo "You guessed it in $GUESS_COUNT tries. The secret number was $SECRET_NUMBER. Nice job!"
+
+    $PSQL "UPDATE users SET games_played = games_played + 1,
+      best_game = CASE
+        WHEN best_game IS NULL OR $GUESS_COUNT < best_game
+        THEN $GUESS_COUNT
+        ELSE best_game
+      END
+      WHERE username='$USERNAME'"
+
+    break
+  fi
 done
