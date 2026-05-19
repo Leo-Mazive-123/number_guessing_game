@@ -30,7 +30,7 @@ do
   read GUESS
 
   # Check integer
-  if ! [[ $GUESS =~ ^[0-9]+$ ]]
+  if [[ ! $GUESS =~ ^[0-9]+$ ]]
   then
     echo "That is not an integer, guess again:"
     continue
