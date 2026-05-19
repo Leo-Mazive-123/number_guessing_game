@@ -3,23 +3,25 @@
 PSQL="psql --username=freecodecamp --dbname=number_guess -t --no-align -c"
 
 echo "Enter your username:"
-read -r USERNAME
+read USERNAME
 
-# Get user info (games_played, best_game)
 USER_INFO=$($PSQL "SELECT games_played, best_game FROM users WHERE username='$USERNAME'")
 
-# If user does not exist
+# trim whitespace (VERY IMPORTANT FOR FCC)
+USER_INFO=$(echo $USER_INFO | sed 's/^ *//;s/ *$//')
+
 if [[ -z $USER_INFO ]]
 then
   echo "Welcome, $USERNAME! It looks like this is your first time here."
-  INSERT_USER=$($PSQL "INSERT INTO users(username) VALUES('$USERNAME')")
+  $PSQL "INSERT INTO users(username) VALUES('$USERNAME')" > /dev/null
   GAMES_PLAYED=0
   BEST_GAME=0
 else
-  GAMES_PLAYED=$(echo $USER_INFO | cut -d '|' -f1)
-  BEST_GAME=$(echo $USER_INFO | cut -d '|' -f2)
+  IFS="|" read GAMES_PLAYED BEST_GAME <<< "$USER_INFO"
 
-  # Fix empty best_game
+  GAMES_PLAYED=$(echo $GAMES_PLAYED | xargs)
+  BEST_GAME=$(echo $BEST_GAME | xargs)
+
   if [[ -z $BEST_GAME ]]
   then
     BEST_GAME=0
@@ -28,7 +30,6 @@ else
   echo "Welcome back, $USERNAME! You have played $GAMES_PLAYED games, and your best game took $BEST_GAME guesses."
 fi
 
-# Generate secret number
 SECRET_NUMBER=$(( RANDOM % 1000 + 1 ))
 GUESS_COUNT=0
 
@@ -36,9 +37,8 @@ echo "Guess the secret number between 1 and 1000:"
 
 while true
 do
-  read -r GUESS
+  read GUESS
 
-  # Validate integer
   if ! [[ $GUESS =~ ^[0-9]+$ ]]
   then
     echo "That is not an integer, guess again:"
@@ -58,8 +58,7 @@ do
 
     NEW_GAMES=$((GAMES_PLAYED + 1))
 
-    # Update best game correctly
-    if [[ $BEST_GAME -eq 0 || $GUESS_COUNT -lt $BEST_GAME ]]
+    if [[ -z $BEST_GAME || $BEST_GAME -eq 0 || $GUESS_COUNT -lt $BEST_GAME ]]
     then
       $PSQL "UPDATE users SET games_played=$NEW_GAMES, best_game=$GUESS_COUNT WHERE username='$USERNAME'"
     else
