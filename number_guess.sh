@@ -50,7 +50,7 @@ do
     # Update database
     NEW_GAMES=$((GAMES_PLAYED + 1))
 
-    if [[ -z $BEST_GAME || $BEST_GAME == 0 || $GUESS_COUNT -lt $BEST_GAME ]]
+    if [[ -z $BEST_GAME || $BEST_GAME == "" || $GUESS_COUNT -lt $BEST_GAME ]]
     then
       UPDATE_USER=$($PSQL "UPDATE users SET games_played=$NEW_GAMES, best_game=$GUESS_COUNT WHERE username='$USERNAME'")
     else
