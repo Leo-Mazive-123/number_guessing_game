@@ -3,10 +3,12 @@
 PSQL="psql --username=freecodecamp --dbname=number_guess -t --no-align -c"
 
 echo "Enter your username:"
-read USERNAME
+read -r USERNAME
 
-USER_INFO=$($PSQL "SELECT user_id, games_played, best_game FROM users WHERE username='$USERNAME'")
+# Get user info (games_played, best_game)
+USER_INFO=$($PSQL "SELECT games_played, best_game FROM users WHERE username='$USERNAME'")
 
+# If user does not exist
 if [[ -z $USER_INFO ]]
 then
   echo "Welcome, $USERNAME! It looks like this is your first time here."
@@ -14,8 +16,15 @@ then
   GAMES_PLAYED=0
   BEST_GAME=0
 else
-  GAMES_PLAYED=$(echo $USER_INFO | cut -d '|' -f2)
-  BEST_GAME=$(echo $USER_INFO | cut -d '|' -f3)
+  GAMES_PLAYED=$(echo $USER_INFO | cut -d '|' -f1)
+  BEST_GAME=$(echo $USER_INFO | cut -d '|' -f2)
+
+  # Fix empty best_game
+  if [[ -z $BEST_GAME ]]
+  then
+    BEST_GAME=0
+  fi
+
   echo "Welcome back, $USERNAME! You have played $GAMES_PLAYED games, and your best game took $BEST_GAME guesses."
 fi
 
@@ -27,10 +36,10 @@ echo "Guess the secret number between 1 and 1000:"
 
 while true
 do
-  read GUESS
+  read -r GUESS
 
-  # Check integer
-  if [[ ! $GUESS =~ ^[0-9]+$ ]]
+  # Validate integer
+  if ! [[ $GUESS =~ ^[0-9]+$ ]]
   then
     echo "That is not an integer, guess again:"
     continue
@@ -47,14 +56,14 @@ do
   else
     echo "You guessed it in $GUESS_COUNT tries. The secret number was $SECRET_NUMBER. Nice job!"
 
-    # Update database
     NEW_GAMES=$((GAMES_PLAYED + 1))
 
-    if [[ -z $BEST_GAME || $BEST_GAME == "" || $GUESS_COUNT -lt $BEST_GAME ]]
+    # Update best game correctly
+    if [[ $BEST_GAME -eq 0 || $GUESS_COUNT -lt $BEST_GAME ]]
     then
-      UPDATE_USER=$($PSQL "UPDATE users SET games_played=$NEW_GAMES, best_game=$GUESS_COUNT WHERE username='$USERNAME'")
+      $PSQL "UPDATE users SET games_played=$NEW_GAMES, best_game=$GUESS_COUNT WHERE username='$USERNAME'"
     else
-      UPDATE_USER=$($PSQL "UPDATE users SET games_played=$NEW_GAMES WHERE username='$USERNAME'")
+      $PSQL "UPDATE users SET games_played=$NEW_GAMES WHERE username='$USERNAME'"
     fi
 
     break
