@@ -42,14 +42,15 @@ do
   ((GUESS_COUNT++))
 
   if [[ $GUESS -lt $SECRET_NUMBER ]]
-  then
-    echo "It's higher than that, guess again:"
-  elif [[ $GUESS -gt $SECRET_NUMBER ]]
-  then
-    echo "It's lower than that, guess again:"
-  else
+then
+  echo "It's higher than that, guess again:"
+elif [[ $GUESS -gt $SECRET_NUMBER ]]
+then
+  echo "It's lower than that, guess again:"
+else
   echo "You guessed it in $GUESS_COUNT tries. The secret number was $SECRET_NUMBER. Nice job!"
-  
+  break
+fi
 
   NEW_GAMES=$((GAMES_PLAYED + 1))
 
