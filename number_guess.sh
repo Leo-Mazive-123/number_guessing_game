@@ -16,6 +16,7 @@ then
   BEST_GAME=""
 else
   IFS="|" read GAMES_PLAYED BEST_GAME <<< "$USER_INFO"
+
   GAMES_PLAYED=$(echo $GAMES_PLAYED | xargs)
   BEST_GAME=$(echo $BEST_GAME | xargs)
 
